@@ -39,14 +39,12 @@ DEFAULT_NUM_PLAYERS = 2
 def load_examples():
     example_configs = {}
     # Load json config files from examples folder
-    example_files = glob("examples/*.json")
+    #example_files = glob("examples/*.json")
+    example_files = glob("*.json")
     for example_file in example_files:
-        with open(example_file, 'r', encoding="utf-8") as f:
+        with open(example_file, 'r') as f:
             example = json.load(f)
-            try:
-                example_configs[example["name"]] = example
-            except KeyError:
-                print(f"Example {example_file} is missing a name field. Skipping.")
+            example_configs[example["name"]] = example
     return example_configs
 
 
@@ -62,14 +60,14 @@ def get_moderator_components(visible=True):
             role_desc = gr.Textbox(label="Moderator role", lines=1, visible=visible, interactive=True,
                                    placeholder=f"Enter the role description for {name}")
             terminal_condition = gr.Textbox(show_label=False, lines=1, visible=visible, interactive=True,
-                                            placeholder="Enter the termination criteria")
+                                            placeholder="Enter the end criteria for the conversation")
         with gr.Column():
             backend_type = gr.Dropdown(show_label=False, visible=visible, interactive=True,
                                        choices=list(BACKEND_REGISTRY.keys()), value=DEFAULT_BACKEND)
             with gr.Accordion(f"{name} Parameters", open=False, visible=visible) as accordion:
                 temperature = gr.Slider(minimum=0, maximum=2.0, step=0.1, interactive=True, visible=visible,
                                         label=f"temperature", value=0.7)
-                max_tokens = gr.Slider(minimum=10, maximum=500, step=10, interactive=True, visible=visible,
+                max_tokens = gr.Slider(minimum=10, maximum=5000, step=10, interactive=True, visible=visible,
                                        label=f"max tokens", value=200)
 
     return [role_desc, terminal_condition, backend_type, accordion, temperature, max_tokens]
@@ -78,9 +76,7 @@ def get_moderator_components(visible=True):
 def get_player_components(name, visible):
     with gr.Row():
         with gr.Column():
-            role_name = gr.Textbox(line=1, show_label=False, interactive=True, visible=visible,
-                                   placeholder=f"Player name for {name}")
-            role_desc = gr.Textbox(lines=3, show_label=False, interactive=True, visible=visible,
+            role_desc = gr.Textbox(label=name, lines=3, interactive=True, visible=visible,
                                    placeholder=f"Enter the role description for {name}")
         with gr.Column():
             backend_type = gr.Dropdown(show_label=False, choices=list(BACKEND_REGISTRY.keys()),
@@ -88,10 +84,10 @@ def get_player_components(name, visible):
             with gr.Accordion(f"{name} Parameters", open=False, visible=visible) as accordion:
                 temperature = gr.Slider(minimum=0, maximum=2.0, step=0.1, interactive=True, visible=visible,
                                         label=f"temperature", value=0.7)
-                max_tokens = gr.Slider(minimum=10, maximum=500, step=10, interactive=True, visible=visible,
-                                       label=f"max tokens", value=200)
+                max_tokens = gr.Slider(minimum=10, maximum=5000, step=10, interactive=True, visible=visible,
+                                       label=f"max tokens", value=2000)
 
-    return [role_name, role_desc, backend_type, accordion, temperature, max_tokens]
+    return [role_desc, backend_type, accordion, temperature, max_tokens]
 
 
 def get_empty_state():
@@ -103,9 +99,11 @@ with gr.Blocks(css=css) as demo:
     all_components = []
 
     with gr.Column(elem_id="col-container"):
-        gr.Markdown("""# 🏟 ChatArena️<br>
-Prompting multiple AI agents to play games in a language-driven environment. 
-**[Project Homepage](https://github.com/chatarena/chatarena)**""", elem_id="header")
+        gr.Markdown("""# Danish Cancer Institute AI<br>
+Prompting multiple AI agents to help generating and improving texts in a language-driven environment. 
+**[Project Homepage and FAQ](https://github.com/chatarena/chatarena)** <br>
+<img src="Kraeftens-Bekaempelse.png" alt="">""", elem_id="header")
+
 
         with gr.Row():
             env_selector = gr.Dropdown(choices=list(ENV_REGISTRY.keys()), value=DEFAULT_ENV, interactive=True,
@@ -115,7 +113,7 @@ Prompting multiple AI agents to play games in a language-driven environment.
 
         # Environment configuration
         env_desc_textbox = gr.Textbox(show_label=True, lines=2, visible=True, label="Environment Description",
-                                      placeholder="Enter a description of a scenario or the game rules.")
+                                      placeholder="")
 
         all_components += [env_selector, example_selector, env_desc_textbox]
 
@@ -126,7 +124,7 @@ Prompting multiple AI agents to play games in a language-driven environment.
 
                 player_chatbots = []
                 for i in range(MAX_NUM_PLAYERS):
-                    player_name = f"Player {i + 1}"
+                    player_name = f"Reviewer {i + 1}"
                     with gr.Tab(player_name, visible=(i < DEFAULT_NUM_PLAYERS)):
                         player_chatbot = gr.Chatbot(elem_id=f"chatbox-{i}", visible=i < DEFAULT_NUM_PLAYERS,
                                                     label=player_name, show_label=False)
@@ -144,9 +142,9 @@ Prompting multiple AI agents to play games in a language-driven environment.
                 all_players_components, players_idx2comp = [], {}
                 with gr.Blocks():
                     num_player_slider = gr.Slider(2, MAX_NUM_PLAYERS, value=DEFAULT_NUM_PLAYERS, step=1,
-                                                  label="Number of players:")
+                                                  label="Number of Reviewers:")
                     for i in range(MAX_NUM_PLAYERS):
-                        player_name = f"Player {i + 1}"
+                        player_name = f"Reviewer {i + 1}"
                         with gr.Tab(player_name, visible=(i < DEFAULT_NUM_PLAYERS)) as tab:
                             player_comps = get_player_components(player_name, visible=(i < DEFAULT_NUM_PLAYERS))
 
@@ -206,11 +204,11 @@ Prompting multiple AI agents to play games in a language-driven environment.
         num_players = all_comps[num_player_slider]
         player_configs = []
         for i in range(num_players):
-            player_name = f"Player {i + 1}"
-            role_name, role_desc, backend_type, temperature, max_tokens = [
+            player_name = f"Reviewer {i + 1}"
+            role_desc, backend_type, temperature, max_tokens = [
                 all_comps[c] for c in players_idx2comp[i] if not isinstance(c, (gr.Accordion, gr.Tab))]
             player_config = {
-                "name": role_name,
+                "name": player_name,
                 "role_desc": role_desc,
                 "global_prompt": env_desc,
                 "backend": {
@@ -241,7 +239,7 @@ Prompting multiple AI agents to play games in a language-driven environment.
             "parallel": all_comps[parallel_checkbox],
             "moderator": moderator_config,
             "moderator_visibility": "all",
-            "moderator_period": None
+            "moderator_period": "turn"
         }
 
         # arena_config = {"players": player_configs, "environment": env_config}
@@ -369,11 +367,9 @@ Prompting multiple AI agents to play games in a language-driven environment.
         # Update the player components
         update_dict[num_player_slider] = gr.update(value=len(example_config['players']))
         for i, player_config in enumerate(example_config['players']):
-            role_name, role_desc, backend_type, temperature, max_tokens = [
+            role_desc, backend_type, temperature, max_tokens = [
                 c for c in players_idx2comp[i] if not isinstance(c, (gr.Accordion, gr.Tab))
             ]
-
-            update_dict[role_name] = gr.update(value=player_config['name'])
             update_dict[role_desc] = gr.update(value=player_config['role_desc'])
             update_dict[backend_type] = gr.update(value=player_config['backend']['backend_type'])
             update_dict[temperature] = gr.update(value=player_config['backend']['temperature'])
@@ -385,4 +381,4 @@ Prompting multiple AI agents to play games in a language-driven environment.
     example_selector.change(update_components_from_example, set(all_components + [state]), all_components + [state])
 
 demo.queue()
-demo.launch(debug=DEBUG, server_port=8080)
+demo.launch(debug=DEBUG, server_port=8083, share = False)

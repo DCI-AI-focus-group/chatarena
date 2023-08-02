@@ -11,20 +11,21 @@ try:
     import openai
 except ImportError:
     is_openai_available = False
-    # logging.warning("openai package is not installed")
+    logging.warning("openai package is not installed")
 else:
     openai.api_key = os.environ.get("OPENAI_API_KEY")
+    
     if openai.api_key is None:
-        # logging.warning("OpenAI API key is not set. Please set the environment variable OPENAI_API_KEY")
+        logging.warning("OpenAI API key is not set. Please set the environment variable OPENAI_API_KEY")
         is_openai_available = False
     else:
         is_openai_available = True
 
 # Default config follows the OpenAI playground
 DEFAULT_TEMPERATURE = 0.7
-DEFAULT_MAX_TOKENS = 256
-# DEFAULT_MODEL = "gpt-3.5-turbo"
+DEFAULT_MAX_TOKENS = 5000
 DEFAULT_MODEL = "gpt-4-0613"
+#gpt-3.5-turbo-16k
 
 END_OF_MESSAGE = "<EOS>"  # End of message token specified by us not OpenAI
 STOP = ("<|endoftext|>", END_OF_MESSAGE)  # End of sentence token
@@ -85,9 +86,9 @@ class OpenAIChat(IntelligenceBackend):
 
         # Merge the role description and the global prompt as the system prompt for the agent
         if global_prompt:  # Prepend the global prompt if it exists
-            system_prompt = f"You are a helpful assistant.\n{global_prompt.strip()}\n{BASE_PROMPT}\n\nYour name is {agent_name}.\n\nYour role:{role_desc}"
+            system_prompt = f"{global_prompt.strip()}\n{BASE_PROMPT}\n\nYour name: {agent_name}\n\nYour role:{role_desc}"
         else:
-            system_prompt = f"You are a helpful assistant. Your name is {agent_name}.\n\nYour role:{role_desc}\n\n{BASE_PROMPT}"
+            system_prompt = f"You are {agent_name}.\n\nYour role:{role_desc}\n\n{BASE_PROMPT}"
 
         all_messages = [(SYSTEM_NAME, system_prompt)]
         for msg in history_messages:
@@ -127,8 +128,6 @@ class OpenAIChat(IntelligenceBackend):
 
         # Remove the agent name if the response starts with it
         response = re.sub(rf"^\s*\[.*]:", "", response).strip()
-        response = re.sub(rf"^\s*{re.escape(agent_name)}\s*:", "", response).strip()
-
         # Remove the tailing end of message token
         response = re.sub(rf"{END_OF_MESSAGE}$", "", response).strip()
 
