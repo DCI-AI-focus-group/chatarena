@@ -381,4 +381,4 @@ Prompting multiple AI agents to help generating and improving texts in a languag
     example_selector.change(update_components_from_example, set(all_components + [state]), all_components + [state])
 
 demo.queue()
-demo.launch(debug=DEBUG, server_port=8083, share = False)
+demo.launch(share = True)
